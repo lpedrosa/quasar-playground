@@ -1,0 +1,44 @@
+apply plugin: 'java'
+
+repositories {
+    jcenter()
+}
+
+project.ext {
+    quasarVersion = '0.7.3'
+    log4j2Version = '2.4.1'
+}
+
+configurations {
+    quasar
+}
+
+dependencies {
+    compile "org.apache.logging.log4j:log4j-slf4j-impl:$log4j2Version"
+    compile "org.apache.logging.log4j:log4j-core:$log4j2Version"
+
+    compile "co.paralleluniverse:quasar-core:$quasarVersion"
+    compile "co.paralleluniverse:quasar-actors:$quasarVersion"
+
+    testCompile 'junit:junit:4.12'
+
+    quasar "co.paralleluniverse:quasar-core:$quasarVersion@jar"
+}
+
+tasks.withType(Test) {
+    jvmArgs "-javaagent:${configurations.quasar.singleFile}"
+}
+
+compileJava.dependsOn processResources
+compileJava {
+    doLast {
+        ant.taskdef(name:'instrumentation', classname:'co.paralleluniverse.fibers.instrument.InstrumentationTask', classpath: configurations.compile.asPath)
+        ant.instrumentation(verbose:'true', check:'true', debug:'true') {
+            fileset(dir: sourceSets.main.output.classesDir)
+        }
+    }
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '2.9'
+}
